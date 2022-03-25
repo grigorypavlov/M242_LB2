@@ -14,7 +14,7 @@ another error occured.
 
 ## Usage
 
-In `main.go`, use the `Server` like this:
+In `main.go`, use the `Server` like this, to configure all necessary endpoints:
 
 ```go
 func main() {
