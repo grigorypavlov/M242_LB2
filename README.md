@@ -13,3 +13,5 @@
 [CORS](06_CORS.md)
 
 [Enabling HTTPS](07_HTTPS.md)
+
+[Service Documentation](08_Service.md)
