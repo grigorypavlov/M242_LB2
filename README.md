@@ -11,3 +11,5 @@
 [Sensors and Actuators](05_SENSORS.md)
 
 [CORS](06_CORS.md)
+
+[Enabling HTTPS](07_HTTPS.md)
