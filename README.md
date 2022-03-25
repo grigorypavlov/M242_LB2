@@ -16,4 +16,6 @@
 
 [Service Documentation](08_Service.md)
 
-[Build & Run It](09_Runit.md)
+[IoTKit Documentation](09_IoTKit.md)
+
+[Build & Run It](10_Runit.md)
