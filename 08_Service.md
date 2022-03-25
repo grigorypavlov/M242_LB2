@@ -8,3 +8,6 @@ from (`GetDataUpdate`).
 
 The IoTKit sends `Request`s to the server, where `Sensor` describes the sensor
 the data was measured with, and `Data` is the measured data json-encoded.
+
+`ErrorResponse` is returned to the caller in case the request was malformed, or
+another error occured.
