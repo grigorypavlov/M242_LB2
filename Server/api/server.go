@@ -73,7 +73,9 @@ func (s *Server) GetDataUpdate(w http.ResponseWriter, r *http.Request) (err erro
 	})
 	if err != nil {
 		if errors.Is(err, buntdb.ErrNotFound) {
-			w.WriteHeader(http.StatusNotFound)
+			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Write([]byte("{\"error\": \"no sensor data\"}"))
 			return nil
 		}
 		s.errorHandler(err)
@@ -81,6 +83,7 @@ func (s *Server) GetDataUpdate(w http.ResponseWriter, r *http.Request) (err erro
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	_, err = w.Write([]byte(data))
 	if err != nil {
 		s.errorHandler(err)
