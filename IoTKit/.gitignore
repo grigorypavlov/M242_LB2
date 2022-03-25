@@ -30,3 +30,11 @@
 *.out
 *.app
 BUILD
+.mbed
+mbed-os
+MbedJSONValue
+mbed-http
+HTS221
+bmp180
+iotkit
+IoTKit
