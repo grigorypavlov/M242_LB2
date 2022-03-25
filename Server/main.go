@@ -11,7 +11,6 @@ import (
 
 func main() {
 	db, err := buntdb.Open(":memory:")
-	//db.CreateIndex("sensor_name", "*", buntdb.IndexJSON("sensor.name"))
 	if err != nil {
 		log.Fatalf("Failed opening database: %s", err)
 	}
