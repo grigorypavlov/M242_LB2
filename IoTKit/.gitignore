@@ -30,8 +30,8 @@
 *.out
 *.app
 BUILD
-.mbed
-mbed-os
+#.mbed
+#mbed-os
 MbedJSONValue
 mbed-http
 HTS221
