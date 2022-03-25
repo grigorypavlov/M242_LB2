@@ -46,3 +46,9 @@ Content-Type:[application/json]] 0xc000080400 <nil> 54 [] false
 
 Navigate to the website in your browser. Periodic requests should automatically
 update the information displayed.
+
+## Mbed Application Won't Build
+
+Sometimes Mbed-studio doesn't correctly include all libraries. In this case,
+switch to the `Libaries` tab and click on all the `!` symbols to install the
+libraries.
