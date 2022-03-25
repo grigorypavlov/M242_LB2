@@ -84,7 +84,7 @@ int32_t main(void)
         post_req->set_header("Content-Type", "application/json");
 
         // Build request body.
-        const char format[] = "{\"sensor\": \"hum_temp\",\"data\":[%f, %f]}";
+        const char format[] = "{\"sensor\": \"hum_temp\",\"data\":\"[%f, %f]\"}";
         char body[80];
         std::sprintf(body, format, humidity, temperature);
 
@@ -98,12 +98,12 @@ int32_t main(void)
         { // Error
             printf("HttpRequest failed (error code %d)\n", post_req->get_error());
             delete post_req;
-            thread_sleep_for(5000);
+            thread_sleep_for(15000); // milliseconds
             continue;
         }
 
         delete post_req;
-        thread_sleep_for(1000);
+        thread_sleep_for(5000); // milliseconds
     }
 
     return EXIT_SUCCESS;

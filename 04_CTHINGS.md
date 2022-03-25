@@ -91,10 +91,14 @@ var->~T();                              // Deconstruct the object.
 
 In C:
 
+```c
 void foo(void) // A function taking _no_ arguments.
 void foo()     // An unspecified number of arguments of unspecified type.
+```
 
 In C++:
 
+```cpp
 void foo(void) // A function taking _no_ arguments. (Same as in C.)
 void foo()     // Also a function taking _no_ arguments.
+```
