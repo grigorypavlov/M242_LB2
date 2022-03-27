@@ -119,3 +119,39 @@ std::string val2;
 sunrise = parser["val1"].get<std::string>();
 sunset  = parser["val2"].get<std::string>();
 ```
+
+## Re-using Sockets
+
+Sockets can be re-used to be more resource friendly.
+
+```cpp
+// Allows us to re-use the same socket for each request (more resource friendly).
+TCPSocket* socket = new TCPSocket();
+nsapi_error_t open_result = socket->open(network);
+if (open_result != 0)
+{ // Error
+    printf("Opening Socket Failed: %d\n", open_result);
+    return EXIT_FAILURE;
+}
+
+nsapi_error_t connect_result = socket->connect(API_BASE);
+if (connect_result != 0)
+{ // Error
+    printf("Connecting to API Failed: %d\n", connect_result);
+    return EXIT_FAILURE;
+}
+```
+
+In network requests, we pass the socket as the first argument, instead of the
+network.
+
+```cpp
+HttpRequest* post_req = new HttpRequest(socket, HTTP_POST, API_URI);
+```
+
+Once we don't need it anymore, we can close and clean it up.
+
+```cpp
+socket->close();
+delete socket;
+```
