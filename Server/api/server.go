@@ -32,16 +32,18 @@ func (s *Server) PostUpdateReport(w http.ResponseWriter, r *http.Request) (err e
 		return nil
 	}
 
-	req := &UpdateRequest{}
-	err = json.NewDecoder(r.Body).Decode(req)
+	req := []*UpdateRequest{}
+	err = json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		s.errorHandler(err)
 		return errorResponse(w, ErrInvalidRequest)
 	}
 
 	err = s.db.Update(func(tx *buntdb.Tx) error {
-		_, _, err := tx.Set(req.Sensor, req.Data, nil)
-		return err
+		for _, v := range req {
+			_, _, _ = tx.Set(v.Sensor, v.Data, nil)
+		}
+		return nil // TODO: check error
 	})
 	if err != nil {
 		s.errorHandler(err)
