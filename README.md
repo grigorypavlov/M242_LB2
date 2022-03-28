@@ -950,7 +950,7 @@ python3 -m http.server
 ```
 
 Finally, open the `IoTKit` folder in mbed-studio. **Ensure the Wi-fi
-credentials in `mbed_app.json` are correct.*** Run a `Clean-Build` once. After,
+credentials in `mbed_app.json` are correct.** Run a `Clean-Build` once. After,
 connect the IoTKit, and deploy the application by pressing the `Run` button.
 
 The IoTKit should now be sending data to the webservice.
