@@ -32,7 +32,7 @@
 2. [Internet of Things](#internet-of-things)
 3. [REST](#rest)
 4. [C/CPP](#c-and-cpp)
-5. [Sensors and Actuators](#sensors)
+5. [Sensors and Actuators](#sensors-1)
 6. [CORS](#cross-origin-resource-sharing)
 7. [Enabling HTTPS](#https)
 8. [Service Documentation](#web-service)
