@@ -19,3 +19,5 @@
 [IoTKit Documentation](09_IoTKit.md)
 
 [Build & Run It](10_Runit.md)
+
+[Test Protocol](11_Testing.md)
