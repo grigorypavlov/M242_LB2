@@ -22,6 +22,10 @@
 
 [Test Protocol](11_Testing.md)
 
+[Reflexion Colin van Loo](12_Reflexion_Colin_van_Loo.md)
+
+[Reflexion Grigory Pavlov](12_Reflexion_Grigory_Pavlov.md)
+
 ---
 
 # One Big File
@@ -39,6 +43,8 @@
 9. [IoTKit Documentation](#iotkit-documentation)
 10. [Build & Run It](#build-and-run-the-project)
 11. [Test Protocol](#test-protocol)
+12. [Reflexion Colin van Loo](#colin-van-loo)
+13. [Reflexion Grigory Pavlov](#grigory-pavlov)
 
 # Setup
 
@@ -704,6 +710,7 @@ remote resource at http://192.168.104.29:8080/api/v1/data?sensor=hum_temp.
 (Reason: CORS request did not succeed). Status code: (null).
 </sample>
 
+
 CORS won't work when testing from `file://`.
 
 ## Solution
@@ -852,6 +859,7 @@ Date: Sun, 27 Mar 2022 16:30:42 GMT
 Content-Length: 0
 </sample>
 
+
 The website (client) will periodically get data from the server using:
 
 ```sh
@@ -965,6 +973,7 @@ Humidity & Temperature Sensor = 0xBC
 HttpRequest status code: 200
 </sample>
 
+
 Console output web service:
 
 <sample>
@@ -978,6 +987,7 @@ Content-Type:[application/json]] 0xc000080400 <nil> 54 [] false
 192.168.104.29:8080 map[] map[] <nil> map[] 192.168.104.23:5670
 /api/v1/hello_world <nil> <nil> <nil> 0xc000080440}
 </sample>
+
 
 Navigate to the website in your browser. Periodic requests should automatically
 update the information displayed.
@@ -1000,3 +1010,23 @@ Air Pressure\* | Compare displayed air pressure with actual air pressure. | Air 
 Humidity\*  | Compare displayed humidity with actual humidity. | Humidity is correct. | OK | -
 
 \* = Depends on motion sensor requirement.
+
+# Reflexionen
+
+## Colin van Loo
+
+I hadn't worked with microprocessors before, and had almost no experience using
+C or C++. Luckily there were many good examples explaining how to use and
+interact with the different sensors on the IoTKit. I also learned a lot about
+C(++) from searching "C Best Practices" on lobste.rs and other places on the
+Internet. I've run into many problems with the IoTKit, Sensors not working
+correctly -- even when using the example code, -- setting up the network
+failing with weird error codes and no further explanation. (After long
+searching, I found an error description hidden a way in the libraries source
+code.) In the end I managed to solve all those problems and learned many new
+things. Programming the MCU was fun, but, besides of `print`s, hard to debug.
+That's why I made sure to keep the code as simple as possible. Easier was
+programming the webservice, since I could use Go, a language I already have
+experience with.
+
+## Grigory Pavlov
