@@ -1026,7 +1026,7 @@ searching, I found an error description hidden a way in the libraries source
 code.) In the end I managed to solve all those problems and learned many new
 things. Programming the MCU was fun, but, besides of `print`s, hard to debug.
 That's why I made sure to keep the code as simple as possible. Easier was
-programming the webservice, since I could use Go, a language I already have
+programming the webservice, since I could use Go, a language I already had
 experience with.
 
 ## Grigory Pavlov
