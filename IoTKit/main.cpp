@@ -19,6 +19,7 @@
 #include "LSM6DSLSensor.h"
 #include <BMP180Wrapper.h>
 #include "glibr.h"
+#include <MQTTClientMbedOs.h>
 
 static DevI2C devI2c(MBED_CONF_IOTKIT_I2C_SDA, MBED_CONF_IOTKIT_I2C_SCL);
 #if MBED_CONF_IOTKIT_HTS221_SENSOR == true
@@ -126,6 +127,7 @@ int32_t main(void)
 
     // Allows us to re-use the same socket for each request (more resource friendly).
     TCPSocket* socket = new TCPSocket();
+
     nsapi_error_t open_result = socket->open(network);
     if (open_result != 0)
     { // Error
@@ -138,6 +140,18 @@ int32_t main(void)
     { // Error
         printf("Connecting to API Failed: %d\n", connect_result);
         return EXIT_FAILURE;
+    }
+
+    MQTTClient client(socket);
+    MQTTPacket_connectData conn_data = MQTTPacket_connectData_initializer;
+    conn_data.MQTTVersion = 3;
+    conn_data.clientID.cstring = (char *) "IoTKitV3";
+    conn_data.username.cstring = (char *) "above";
+    conn_data.password.cstring = (char *) "andbeyond";
+    nsapi_error_t mqtt_connect_result = client.connect(conn_data);
+    if (mqtt_connect_result != 0)
+    { // Error
+        printf("Connecting to Broker Failed: %d\n", mqtt_connect_result);
     }
 
     float temperature, humidity;
