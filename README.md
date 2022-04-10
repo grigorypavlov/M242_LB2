@@ -51,6 +51,8 @@
 
 # Setup
 
+![Project Overview](Architecture_Scribble.svg)
+
 ## Mbed Studio
 
 Install using paru/pacman:
