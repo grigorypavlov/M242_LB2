@@ -1,59 +1,277 @@
-# M242 - LB2
+# M242 - LB3
 
-[Setup](01_Setup.md)
+SmartHome® Activity© Dashboard™
 
-[Internet of Things](02_IoT.md)
+- ✅ Detect movement
+- ✅ Dynamic, responsive web UI; style to your liking!
+- ✅ Display activity on web UI
+- ✅ Command actions from web UI
+- ✅ Create automated tasks
+- ✅ And many more awesome features!
 
-[REST](03_REST.md)
+## Table of contents
 
-[C/CPP](04_CTHINGS.md)
+1. [Project Description](#project-description)
+2. [Service Documentation](#web-service) [[FILE⧉]](single/08_Service.md)
+3. [IoTKit Documentation](#iotkit-documentation) [[FILE⧉]](single/09_IoTKit.md)
+4. [Build & Run It](#build-and-run-the-project) [[FILE⧉]](single/10_Runit.md)
+5. [Test Protocol](#test-protocol) [[FILE⧉]](single/11_Testing.md)
+6. [Setup](#setup) [[FILE⧉]](single/01_Setup.md)
+7. [Internet of Things](#internet-of-things) [[FILE⧉]](single/02_IoT.md)
+8. [REST](#rest) [[FILE⧉]](single/03_REST.md)
+9. [C/CPP](#c-and-cpp) [[FILE⧉]](single/04_CTHINGS.md)
+10. [Sensors and Actuators](#sensors-1) [[FILE⧉]](single/05_SENSORS.md)
+11. [CORS](#cross-origin-resource-sharing) [[FILE⧉]](single/06_CORS.md)
+12. [Enabling HTTPS](#https) [[FILE⧉]](single/07_HTTPS.md)
+13. [Reflexion Colin van Loo](#colin-van-loo) [[FILE⧉]](single/12_Reflexion_Colin_van_Loo.md)
+14. [Reflexion Grigory Pavlov](#grigory-pavlov) [[FILE⧉]](single/13_Reflexion_Grigory_Pavlov.md)
+15. [Mosquitto Broker](#mosquitto-broker) [[FILE⧉]](single/14_Mosquitto_RPi_Setup.md)
 
-[Sensors and Actuators](05_SENSORS.md)
-
-[CORS](06_CORS.md)
-
-[Enabling HTTPS](07_HTTPS.md)
-
-[Service Documentation](08_Service.md)
-
-[IoTKit Documentation](09_IoTKit.md)
-
-[Build & Run It](10_Runit.md)
-
-[Test Protocol](11_Testing.md)
-
-[Reflexion Colin van Loo](12_Reflexion_Colin_van_Loo.md)
-
-[Reflexion Grigory Pavlov](13_Reflexion_Grigory_Pavlov.md)
-
-[Mosquitto Broker](14_Mosquitto_RPi_Setup.md)
-
----
-
-# One Big File
-
-# Table of contents
-
-1. [Setup](#setup)
-2. [Internet of Things](#internet-of-things)
-3. [REST](#rest)
-4. [C/CPP](#c-and-cpp)
-5. [Sensors and Actuators](#sensors-1)
-6. [CORS](#cross-origin-resource-sharing)
-7. [Enabling HTTPS](#https)
-8. [Service Documentation](#web-service)
-9. [IoTKit Documentation](#iotkit-documentation)
-10. [Build & Run It](#build-and-run-the-project)
-11. [Test Protocol](#test-protocol)
-12. [Reflexion Colin van Loo](#colin-van-loo)
-13. [Reflexion Grigory Pavlov](#grigory-pavlov)
-14. [Mosquitto Broker](#mosquitto-broker)
-
-# Setup
+## Project Description
 
 ![Project Overview](Architecture_Scribble.svg)
 
-## Mbed Studio
+### Web Service
+
+![Class Diagram](class_diagram.svg)
+
+`Server` provides an endpoint for the IoTKit to send data to
+(`PostUpdateReport`), and an endpoint for the client web interface to read data
+from (`GetDataUpdate`).
+
+The IoTKit sends `Request`s to the server, where `Sensor` describes the sensor
+the data was measured with, and `Data` is the measured data json-encoded.
+
+`ErrorResponse` is returned to the caller in case the request was malformed, or
+another error occured.
+
+#### Usage
+
+In `main.go`, use the `Server` like this, to configure all necessary endpoints:
+
+```go
+func main() {
+	db, _ := buntdb.Open(":memory:")
+	srv := api.New(db)
+
+	mux := http.NewServeMux()
+	mux.Handle(
+		"/api/v1/hello_world",
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			err := srv.PostUpdateReport(w, r)
+			if err != nil {
+				log.Printf("Error handling request: %v, %v\n", r, err)
+			}
+		}))
+
+	mux.Handle(
+		"/api/v1/data",
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			err := srv.GetDataUpdate(w, r)
+			if err != nil {
+				log.Printf("Error handling request: %v, %v\n", r, err)
+			}
+		}))
+
+	fmt.Println("Listening on :8080 ...")
+	log.Fatal(http.ListenAndServe(":8080", mux))
+}
+```
+
+Request handlers can be chained together, for example, to log requests:
+
+```go
+func loggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("Request received: %v\n", r)
+		next.ServeHTTP(w, r)
+	})
+}
+
+mux.Handle(
+    "/api/v1/hello_world",
+    loggingMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        err := srv.PostUpdateReport(w, r)
+        if err != nil {
+            log.Printf("Error handling request: %v, %v\n", r, err)
+        }
+    })))
+```
+
+#### API
+
+The MCU listens to motions, and if detected, sends sensor data to the server in
+a request like this:
+
+```sh
+curl -i "192.168.65.55:8080/api/v1/hello_world" -X POST\
+-H "Content-Type: application/json"\
+-d '[{"sensor":"hum_temp","data":"[28.52, 26.5862]"},{"sensor":"tilt","data":"[0, 0, 0, 0, 0, 1]"},{"sensor":"pressure","data":"12.046"}]'
+```
+
+The server responds with:
+
+<sample>
+HTTP/1.1 200 OK
+Date: Sun, 27 Mar 2022 16:30:42 GMT
+Content-Length: 0
+</sample>
+
+
+The website (client) will periodically get data from the server using:
+
+```sh
+# Temperature and humidity
+curl -i "192.168.65.55:8080/api/v1/data?sensor=hum_temp" -X GET
+> HTTP/1.1 200 OK
+> Access-Control-Allow-Origin: *
+> Content-Type: application/json
+> Date: Sun, 27 Mar 2022 16:31:21 GMT
+> Content-Length: 16
+> 
+> [28.52, 26.5862]
+
+# Device tilt
+curl -i "192.168.65.55:8080/api/v1/data?sensor=tilt" -X GET
+> HTTP/1.1 200 OK
+> Access-Control-Allow-Origin: *
+> Content-Type: application/json
+> Date: Sun, 27 Mar 2022 16:31:30 GMT
+> Content-Length: 18
+> 
+> [0, 0, 0, 0, 0, 1]
+
+# Air pressure
+curl -i "192.168.65.55:8080/api/v1/data?sensor=pressure" -X GET
+> HTTP/1.1 200 OK
+> Access-Control-Allow-Origin: *
+> Content-Type: application/json
+> Date: Sun, 27 Mar 2022 16:31:43 GMT
+> Content-Length: 6
+> 
+> 12.046
+```
+
+### IoTKit Documentation
+
+The program is constructed very simple, using only a `main.cpp` file and
+running in an infinite loop.
+
+```cpp
+// Includes ...
+
+// Constant definitions ...
+
+// Main entry point.
+int32_t main(void) {
+    // Sensor setup
+    hum_temp.init(NULL);
+    hum_temp.enable(); 
+    // ...
+
+    // Networking setup
+    WiFiInterface* network = WiFiInterface::get_default_instance();
+
+    if (!network) {
+        printf("ERROR: No WiFiInterface found.\n");
+        return EXIT_FAILURE;
+    }
+
+    // Infinite loop, read sensor data, send data to server, sleep, repeat.
+    for (;;)
+    {
+        // Read sensor data
+        hum_temp.get_temperature(&temperature);
+        hum_temp.get_humidity(&humidity);
+        // ...
+
+        // Send POST requests
+        HttpRequest* post_req = new HttpRequest(network, HTTP_POST, API_URI);
+        post_req->set_header("Content-Type", "application/json");
+        // ...
+
+        // Clean up resources
+        delete post_req;
+
+        // Sleep for 5 seconds
+        thread_sleep_for(5000); // milliseconds
+    }
+}
+```
+
+## Build and Run the Project
+
+Start the go web-service:
+
+```sh
+cd Server
+go run .
+```
+
+Then start the web interface using any http server, for example python:
+
+```sh
+cd Web
+python3 -m http.server
+```
+
+Finally, open the `IoTKit` folder in mbed-studio. **Ensure the Wi-fi
+credentials in `mbed_app.json` are correct.** Run a `Clean-Build` once. After,
+connect the IoTKit, and deploy the application by pressing the `Run` button.
+
+The IoTKit should now be sending data to the webservice.
+
+Console output IoTKit:
+
+<sample>
+Connecting to LERNKUBE...SUCCESS
+MAC: C4:7F:51:8D:13:58
+IP: 192.168.104.23
+Humidity & Temperature Sensor = 0xBC
+HttpRequest status code: 200
+</sample>
+
+
+Console output web service:
+
+<sample>
+Listening on :8080 ... 2022/03/25 11:29:51 Request received: &{POST
+/api/v1/hello_world HTTP/1.1 1 1 map[Content-Length:[54]
+Content-Type:[application/json]] 0xc0000801c0 <nil> 54 [] false
+192.168.104.29:8080 map[] map[] <nil> map[] 192.168.104.23:5669
+/api/v1/hello_world <nil> <nil> <nil> 0xc000080200} 2022/03/25 11:29:56 Request
+received: &{POST /api/v1/hello_world HTTP/1.1 1 1 map[Content-Length:[54]
+Content-Type:[application/json]] 0xc000080400 <nil> 54 [] false
+192.168.104.29:8080 map[] map[] <nil> map[] 192.168.104.23:5670
+/api/v1/hello_world <nil> <nil> <nil> 0xc000080440}
+</sample>
+
+
+Navigate to the website in your browser. Periodic requests should automatically
+update the information displayed.
+
+### Mbed Application Won't Build
+
+Sometimes Mbed-studio doesn't correctly include all libraries. In this case,
+switch to the `Libaries` tab and click on all the `!` symbols to install the
+libraries.
+
+## Test Protocol
+
+Requirement | Test Description | Expected Result | Result OK? | Comment
+----------- | ---------------- | --------------- | ---------- | -------
+Motion sensor | Lower or wave hand over MCU. | MCU starts sending data to server, website displays updates. | OK | -
+Time\*      | Compare time displayed on webpage with actual time. | The time is correct. | FAILED | Incorrect time on MCU, would neet be by synchronized first, e.g., with NTP.
+Tilt\*      | Tilt the board in any direction. | Website displays the angle of tilt. | OK | Direction of tilt can be measured, but not the exact degree.
+Temperature\* | Compare displayed temperature with actual temperature. | Temperature is correct. | OK | -
+Air Pressure\* | Compare displayed air pressure with actual air pressure. | Air pressure is correct. | OK | -
+Humidity\*  | Compare displayed humidity with actual humidity. | Humidity is correct. | OK | -
+
+\* = Depends on motion sensor requirement.
+
+## Setup
+
+### Mbed Studio
 
 Install using paru/pacman:
 
@@ -78,7 +296,7 @@ And then execute it:
 
 The installation can take quite some time.
 
-## First Project
+### First Project
 
 Inside the Mbed Studio, click `File` -> `Import Program`. Paste
 [https://github.com/iotkitv3/gpio](https://github.com/iotkitv3/gpio) into the
@@ -127,7 +345,7 @@ int main()
 }
 ```
 
-## Deploy the Program
+### Deploy the Program
 
 After a clean build, click the "Run program" button, located right of the
 "Clean Build" button. On the top of the screen a notification might appear,
@@ -138,25 +356,25 @@ The application should be executed now, output is written to the serial console
 (the window in the bottom part of the screen, labeled
 "DISCO\_some\_numbers\_and\_letters").
 
-## Trouble Shooting
+### Trouble Shooting
 
 Click "Clean Build". The build starts, but after some while prints out:
 
-<samp>
+```
 [ERROR] armclang: error: System clock tampering detected. License checkout will fail.
 armclang: error: Failed to check out a license.
 armclang: note:
 Information about this error is available at: http://ds.arm.com/support/lic56/m1004
-</samp>
+```
 
 The link that supposedly should be pointing to more information about the error
 leads to a 404 page.
 
 Then the compilation fails with:
 
-<samp>
+```
 armclang: error: ARM Compiler does not support '-mcpu=cortex-m4'
-</samp>
+```
 
 Searching online doesn't help a lot. According to some ARM dev on a forum, they
 themselves haven't figured it out yet. The suspected problem is, that during
@@ -168,26 +386,26 @@ After some trying out I figured, that you can press "Build" over and over
 again. Every time, the building process will continue from where it left off,
 until either the "License Check" fails or the build finally completes.
 
-### Update (18.03.2022)
+#### Update (18.03.2022)
 
 I found out that the error only happens when the IoTKit is connected to the
 computer. Simply disconnect the board and the compiler stays happy :-).
 
-# Internet of Things
+## Internet of Things
 
 Groups of devices with sensors and other abilities to connect and exchange data
 with other devices and systems over the Internet or other network.
 
-## Sensors
+### Sensors
 
 Monitors and measures physical aspects of an environment. Turn physical input
 into an electrical output.
 
-## Actuators
+### Actuators
 
 Receives an (electrical) signal and performs an action.
 
-# REST
+## REST
 
 Short for *Re*presentational *S*tate *T*ransfer, builds on top of HTTP.
 
@@ -214,7 +432,7 @@ Content-Type: application/json
 }
 ```
 
-## Request Methods
+### Request Methods
 
 Describe an action. The most important ones are:
 
@@ -228,7 +446,7 @@ DELETE | Delete a resource from the server.
 GET and POST are very common, PUT and DELETE are mostly found in file transfer
 protocols like "remoteStorage".
 
-## HTTP Requests On the IoTKit
+### HTTP Requests On the IoTKit
 
 Include the required header files.
 
@@ -309,7 +527,7 @@ sunrise = parser["val1"].get<std::string>();
 sunset  = parser["val2"].get<std::string>();
 ```
 
-## Re-using Sockets
+### Re-using Sockets
 
 Sockets can be re-used to be more resource friendly.
 
@@ -345,9 +563,9 @@ socket->close();
 delete socket;
 ```
 
-# C and CPP
+## C and CPP
 
-## Type Definitions
+### Type Definitions
 
 Use clear types.
 
@@ -359,7 +577,7 @@ int32_t var2; // signed 32-bit int
 // ...
 ```
 
-## Return Conventions
+### Return Conventions
 
 Functions _often_ return a positive integer value on success and a negative
 value on failure. Some returned objects can also be used as similar to booleans.
@@ -376,7 +594,7 @@ if (!ret) {
 }
 ```
 
-## Inifinite Loops
+### Inifinite Loops
 
 ```cpp
 // Variant 1
@@ -386,7 +604,7 @@ while (1) { /* ... */ }
 for (;;) { /* ... */ }
 ```
 
-## The `using` Keyword
+### The `using` Keyword
 
 Include something from the standard library.
 
@@ -404,7 +622,7 @@ std::printf("Hello, World\n");
 printf("Hello, World\n");
 ```
 
-## Memory Management.
+### Memory Management.
 
 Generally `new` should be pared with `delete` and `malloc` with `free`.
 
@@ -434,7 +652,7 @@ var->~T();                              // Deconstruct the object.
 ::operator delete(var);                 // Deallocate the memory.
 ```
 
-## Function Definitions
+### Function Definitions
 
 In C:
 
@@ -450,15 +668,15 @@ void foo(void) // A function taking _no_ arguments. (Same as in C.)
 void foo()     // Also a function taking _no_ arguments.
 ```
 
-# Sensors
+## Sensors
 
-## I2C
+### I2C
 
 I-Squared-C, Inter-Integrated Circuit, is a serial databus. It is a
 master-slave bus, a data transfer is always initialized by the master (MCU on
 the board).
 
-## Get the microprocessor's localtime
+### Get the microprocessor's localtime
 
 First, the time needs to be set. One possibility is to read from the terminal,
 if one is connected to the microprocessor:
@@ -493,7 +711,7 @@ oled.cursor(1, 0);
 oled.printf(time_buffer);
 ```
 
-## LSM6DSL
+### LSM6DSL
 
 Accellerator and gyroscope, we use this sensor to measure the tilt of the
 microprocessor.
@@ -528,7 +746,7 @@ for (;;) {
 }
 ```
 
-## HTS221
+### HTS221
 
 Measure temperature and humidity.
 
@@ -554,7 +772,7 @@ hum_temp.get_humidity(&humidity);
 // Data is now stored in the vars temperature and humidity.
 ```
 
-## BMP180
+### BMP180
 
 Can be used to measure air pressure.
 
@@ -580,7 +798,7 @@ for (;;) {
 }
 ```
 
-## APDS-9960
+### APDS-9960
 
 Motion/Gesture sensor.
 
@@ -619,7 +837,7 @@ if (gsensor.isGestureAvailable() && gsensor.readGesture() != DIR_NONE)
 There is a small red LED on the IoTKit, that will turn off whenever a gesture
 is detected.
 
-## LIS3MDL
+### LIS3MDL
 
 3-axis magnet sensor.
 
@@ -651,7 +869,7 @@ else
     oled.printf( "      %6ld", diff );
 ```
 
-## LSM6DSL
+### LSM6DSL
 
 3D gyroscope and accellerator sensor.
 
@@ -701,24 +919,24 @@ if (gyro_status.TapStatus) {
 }
 ```
 
-# Cross Origin Resource Sharing
+## Cross Origin Resource Sharing
 
 Things like `iframe`s make it possible for one website to access another
 website. To protect this feature from being misused for evil purposes, CORS was
 invented.
 
-## Problem
+### Problem
 
-<sample>
+```
 Cross-Origin Request Blocked: The Same Origin Policy disallows reading the
 remote resource at http://192.168.104.29:8080/api/v1/data?sensor=hum_temp.
 (Reason: CORS request did not succeed). Status code: (null).
-</sample>
+```
 
 
-CORS won't work when testing from `file://`.
+CORS will not work when testing from `file://`.
 
-## Solution
+### Solution
 
 Run a simple http server:
 
@@ -740,9 +958,9 @@ Or specify allowed domains:
 w.Header().Set("Access-Control-Allow-Origin", "https://example.com")
 ```
 
-# HTTPS
+## HTTPS
 
-## IoTKit
+### IoTKit
 
 Enable the IoTKit to use HTTPS.
 
@@ -768,7 +986,7 @@ const char SSL_CA_PEM[] = "-----BEGIN CERTIFICATE-----\n"
     "-----END CERTIFICATE-----\n"
 ```
 
-## Server
+### Server
 
 To enable HTTPS on the server side, we need to change the line:
 
@@ -777,279 +995,12 @@ log.Fatal(http.ListenAndServeTLS(":8080", "cert.pem", "key.pem", nil)
 ```
 
 `cert.pem` and `key.pem` are the respective certificate and private key files.
-
-# Web Service
-
-![Class Diagram](class_diagram.svg)
-
-`Server` provides an endpoint for the IoTKit to send data to
-(`PostUpdateReport`), and an endpoint for the client web interface to read data
-from (`GetDataUpdate`).
-
-The IoTKit sends `Request`s to the server, where `Sensor` describes the sensor
-the data was measured with, and `Data` is the measured data json-encoded.
-
-`ErrorResponse` is returned to the caller in case the request was malformed, or
-another error occured.
-
-## Usage
-
-In `main.go`, use the `Server` like this, to configure all necessary endpoints:
-
-```go
-func main() {
-	db, _ := buntdb.Open(":memory:")
-	srv := api.New(db)
-
-	mux := http.NewServeMux()
-	mux.Handle(
-		"/api/v1/hello_world",
-		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			err := srv.PostUpdateReport(w, r)
-			if err != nil {
-				log.Printf("Error handling request: %v, %v\n", r, err)
-			}
-		}))
-
-	mux.Handle(
-		"/api/v1/data",
-		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			err := srv.GetDataUpdate(w, r)
-			if err != nil {
-				log.Printf("Error handling request: %v, %v\n", r, err)
-			}
-		}))
-
-	fmt.Println("Listening on :8080 ...")
-	log.Fatal(http.ListenAndServe(":8080", mux))
-}
-```
-
-Request handlers can be chained together, for example, to log requests:
-
-```go
-func loggingMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("Request received: %v\n", r)
-		next.ServeHTTP(w, r)
-	})
-}
-
-mux.Handle(
-    "/api/v1/hello_world",
-    loggingMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-        err := srv.PostUpdateReport(w, r)
-        if err != nil {
-            log.Printf("Error handling request: %v, %v\n", r, err)
-        }
-    })))
-```
-
-## API
-
-The MCU listens to motions, and if detected, sends sensor data to the server in
-a request like this:
-
-```sh
-curl -i "192.168.65.55:8080/api/v1/hello_world" -X POST\
--H "Content-Type: application/json"\
--d '[{"sensor":"hum_temp","data":"[28.52, 26.5862]"},{"sensor":"tilt","data":"[0, 0, 0, 0, 0, 1]"},{"sensor":"pressure","data":"12.046"}]'
-```
-
-The server responds with:
-
-<sample>
-HTTP/1.1 200 OK
-Date: Sun, 27 Mar 2022 16:30:42 GMT
-Content-Length: 0
-</sample>
-
-
-The website (client) will periodically get data from the server using:
-
-```sh
-# Temperature and humidity
-curl -i "192.168.65.55:8080/api/v1/data?sensor=hum_temp" -X GET
-> HTTP/1.1 200 OK
-> Access-Control-Allow-Origin: *
-> Content-Type: application/json
-> Date: Sun, 27 Mar 2022 16:31:21 GMT
-> Content-Length: 16
-> 
-> [28.52, 26.5862]
-
-# Device tilt
-curl -i "192.168.65.55:8080/api/v1/data?sensor=tilt" -X GET
-> HTTP/1.1 200 OK
-> Access-Control-Allow-Origin: *
-> Content-Type: application/json
-> Date: Sun, 27 Mar 2022 16:31:30 GMT
-> Content-Length: 18
-> 
-> [0, 0, 0, 0, 0, 1]
-
-# Air pressure
-curl -i "192.168.65.55:8080/api/v1/data?sensor=pressure" -X GET
-> HTTP/1.1 200 OK
-> Access-Control-Allow-Origin: *
-> Content-Type: application/json
-> Date: Sun, 27 Mar 2022 16:31:43 GMT
-> Content-Length: 6
-> 
-> 12.046
-```
-
-# IoTKit Documentation
-
-The program is constructed very simple, using only a `main.cpp` file and
-running in an infinite loop.
-
-```cpp
-// Includes ...
-
-// Constant definitions ...
-
-// Main entry point.
-int32_t main(void) {
-    // Sensor setup
-    hum_temp.init(NULL);
-    hum_temp.enable(); 
-    // ...
-
-    // Networking setup
-    WiFiInterface* network = WiFiInterface::get_default_instance();
-
-    if (!network) {
-        printf("ERROR: No WiFiInterface found.\n");
-        return EXIT_FAILURE;
-    }
-
-    // Infinite loop, read sensor data, send data to server, sleep, repeat.
-    for (;;)
-    {
-        // Read sensor data
-        hum_temp.get_temperature(&temperature);
-        hum_temp.get_humidity(&humidity);
-        // ...
-
-        // Send POST requests
-        HttpRequest* post_req = new HttpRequest(network, HTTP_POST, API_URI);
-        post_req->set_header("Content-Type", "application/json");
-        // ...
-
-        // Clean up resources
-        delete post_req;
-
-        // Sleep for 5 seconds
-        thread_sleep_for(5000); // milliseconds
-    }
-}
-```
-
-# Build and Run the Project
-
-Start the go web-service:
-
-```sh
-cd Server
-go run .
-```
-
-Then start the web interface using any http server, for example python:
-
-```sh
-cd Web
-python3 -m http.server
-```
-
-Finally, open the `IoTKit` folder in mbed-studio. **Ensure the Wi-fi
-credentials in `mbed_app.json` are correct.** Run a `Clean-Build` once. After,
-connect the IoTKit, and deploy the application by pressing the `Run` button.
-
-The IoTKit should now be sending data to the webservice.
-
-Console output IoTKit:
-
-<sample>
-Connecting to LERNKUBE...SUCCESS
-MAC: C4:7F:51:8D:13:58
-IP: 192.168.104.23
-Humidity & Temperature Sensor = 0xBC
-HttpRequest status code: 200
-</sample>
-
-
-Console output web service:
-
-<sample>
-Listening on :8080 ... 2022/03/25 11:29:51 Request received: &{POST
-/api/v1/hello_world HTTP/1.1 1 1 map[Content-Length:[54]
-Content-Type:[application/json]] 0xc0000801c0 <nil> 54 [] false
-192.168.104.29:8080 map[] map[] <nil> map[] 192.168.104.23:5669
-/api/v1/hello_world <nil> <nil> <nil> 0xc000080200} 2022/03/25 11:29:56 Request
-received: &{POST /api/v1/hello_world HTTP/1.1 1 1 map[Content-Length:[54]
-Content-Type:[application/json]] 0xc000080400 <nil> 54 [] false
-192.168.104.29:8080 map[] map[] <nil> map[] 192.168.104.23:5670
-/api/v1/hello_world <nil> <nil> <nil> 0xc000080440}
-</sample>
-
-
-Navigate to the website in your browser. Periodic requests should automatically
-update the information displayed.
-
-## Mbed Application Won't Build
-
-Sometimes Mbed-studio doesn't correctly include all libraries. In this case,
-switch to the `Libaries` tab and click on all the `!` symbols to install the
-libraries.
-
-# Test Protocol
-
-Requirement | Test Description | Expected Result | Result OK? | Comment
------------ | ---------------- | --------------- | ---------- | -------
-Motion sensor | Lower or wave hand over MCU. | MCU starts sending data to server, website displays updates. | OK | -
-Time\*      | Compare time displayed on webpage with actual time. | The time is correct. | FAILED | Incorrect time on MCU, would neet be by synchronized first, e.g., with NTP.
-Tilt\*      | Tilt the board in any direction. | Website displays the angle of tilt. | OK | Direction of tilt can be measured, but not the exact degree.
-Temperature\* | Compare displayed temperature with actual temperature. | Temperature is correct. | OK | -
-Air Pressure\* | Compare displayed air pressure with actual air pressure. | Air pressure is correct. | OK | -
-Humidity\*  | Compare displayed humidity with actual humidity. | Humidity is correct. | OK | -
-
-\* = Depends on motion sensor requirement.
-
-# Reflexionen
-
-## Colin van Loo
-
-I hadn't worked with microprocessors before, and had almost no experience using
-C or C++. Luckily there were many good examples explaining how to use and
-interact with the different sensors on the IoTKit. I also learned a lot about
-C(++) from searching "C Best Practices" on lobste.rs and other places on the
-Internet. I've run into many problems with the IoTKit, Sensors not working
-correctly -- even when using the example code, -- setting up the network
-failing with weird error codes and no further explanation. (After long
-searching, I found an error description hidden a way in the libraries source
-code.) In the end I managed to solve all those problems and learned many new
-things. Programming the MCU was fun, but, besides of `print`s, hard to debug.
-That's why I made sure to keep the code as simple as possible. Easier was
-programming the webservice, since I could use Go, a language I already had
-experience with.
-
-## Grigory Pavlov
-
-Starting this project I had some experience with C++ but not all too much with
-microprocessors. Reading the IoTKit documentation helped me a lot to get used
-to this unique environment. I liked this project because I work at a company
-that deals with IoT/Smart home devices and software and I thought I could learn
-some useful things. Initially I had a few problems building libraries in the
-Mbed Studio but after getting it to work I could help out Colin with
-implementing the wanted functionality. I'm thinking of doing something
-microprocessor-related in my free time somewhen in the future.
-
-# Mosquitto Broker
+	
+## Mosquitto Broker
 
 Mosquitto on a Rasperry Pi 4
 
-## Get the Raspberry Pi Ready
+### Get the Raspberry Pi Ready
 
 First, download the Raspberry Pi Imager:
 
@@ -1101,7 +1052,7 @@ SSH into the RPi:
 ssh mos@192.168.1.137 # Replace IP with actual IP
 ```
 
-## Install Mosquitto Broker
+### Install Mosquitto Broker
 
 Ensure the RPi is up to date.
 
@@ -1144,7 +1095,7 @@ sudo systemctl enable mosquitto
 sudo systemctl start mosquitto
 ```
 
-## Connect to the Broker from Go
+### Connect to the Broker from Go
 
 We use the `paho.mqtt.golang` library.
 
@@ -1198,3 +1149,32 @@ so called "QoS" or Quality of Service parameter.
 - 0: Receive a message at most once
 - 1: Receive a message at least once
 - 2: Receive a message exactly once
+
+## Reflexionen
+
+### Colin van Loo
+
+I hadn't worked with microprocessors before, and had almost no experience using
+C or C++. Luckily there were many good examples explaining how to use and
+interact with the different sensors on the IoTKit. I also learned a lot about
+C(++) from searching "C Best Practices" on lobste.rs and other places on the
+Internet. I've run into many problems with the IoTKit, Sensors not working
+correctly -- even when using the example code, -- setting up the network
+failing with weird error codes and no further explanation. (After long
+searching, I found an error description hidden a way in the libraries source
+code.) In the end I managed to solve all those problems and learned many new
+things. Programming the MCU was fun, but, besides of `print`s, hard to debug.
+That's why I made sure to keep the code as simple as possible. Easier was
+programming the webservice, since I could use Go, a language I already had
+experience with.
+
+### Grigory Pavlov
+
+Starting this project I had some experience with C++ but not all too much with
+microprocessors. Reading the IoTKit documentation helped me a lot to get used
+to this unique environment. I liked this project because I work at a company
+that deals with IoT/Smart home devices and software and I thought I could learn
+some useful things. Initially I had a few problems building libraries in the
+Mbed Studio but after getting it to work I could help out Colin with
+implementing the wanted functionality. I'm thinking of doing something
+microprocessor-related in my free time somewhen in the future.
