@@ -29,11 +29,11 @@ SmartHome® Activity© Dashboard™
 
 ## Project Description
 
-![Project Overview](Architecture_Scribble.svg)
+![Project Overview](single/Architecture_Scribble.svg)
 
 ### Web Service
 
-![Class Diagram](class_diagram.svg)
+![Class Diagram](single/class_diagram.svg)
 
 `Server` provides an endpoint for the IoTKit to send data to
 (`PostUpdateReport`), and an endpoint for the client web interface to read data
@@ -1035,7 +1035,7 @@ _Before we click "Write," we first need to do some more configuration._
 6. Tick "Set locale settings" and leave the defaults.
 7. Optionally: Opt-out of telemetry.
 
-![Raspberry Pi Imager Configuration Options](./rpi-imager-configuration.png)
+![Raspberry Pi Imager Configuration Options](single/rpi-imager-configuration.png)
 
 Finally, click "Write" and confirm the pop-up.
 
