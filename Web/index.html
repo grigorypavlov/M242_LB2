@@ -11,16 +11,17 @@
 <body>
     <div class="title">
         <h1>Welcome</h1>
-        <h1 id="time">00:00:00</h1>
+        <h1 id="time" style="flex: 20;">00:00:00</h1>
+        <a id="lockToggle" data-replace="Unlock UI" style="width: 75px; height: 25px; text-align: center"><span>Locked</span></a>
     </div>
     <div class="panel-container">
         <div id="temp" class="panel">
             <h3>Temperature</h3>
-            <p class="txt-big">28.2&deg;C</p>
+            <p class="txt-big">0.0&deg;C</p>
         </div>
         <div id="humi" class="panel">
             <h3>Humidity</h3>
-            <p class="txt-big">35.8</p>
+            <p class="txt-big">0.0</p>
         </div>
         <div id="tilt" class="panel">
             <h3>Tilt</h3>
@@ -33,26 +34,27 @@
         <div id="acti" class="panel">
             <h3>Actions</h3>
             <div class="inside">
-                <button type="button">Run Motors</button>
-                <button type="button">Turn LEDs On</button>
+                <button type="button" class="pulse">Run Motors</button>
+                <button type="button" class="pulse">Turn LEDs On</button>
             </div>
         </div>
         <div id="debu" class="panel">
             <h3>Debug</h3>
             <div class="inside">
                 <pre>
-202204101624: Publish GoServer: Action.LED
-202204101624: Publish GoServer: Action.LED
-202204101624: Publish GoServer: Action.LED
-202204101624: Publish GoServer: Action.LED
-202204101624: Publish GoServer: Action.LED
-202204101624: Publish GoServer: Action.LED ou euho uho tuhoeutnh 
+Debug log empty...
 </pre>
             </div>
         </div>
         <div id="pres" class="panel">
             <h3>Pressure</h3>
-            <p class="txt-big">9.87</p>
+            <p class="txt-big">0.00</p>
+        </div>
+        <div id="stat" class="panel">
+            <h3>System Status</h3>
+            <p>Web Interface: Down</p>
+            <p>Backend API/Broker: Down</p>
+            <p>MCU: Down</p>
         </div>
     </div>
 
@@ -76,6 +78,28 @@
     <script>
         const panels = document.getElementsByClassName("panel");
         registerWindows(panels);
+
+        const toggle = document.getElementById("lockToggle");
+        const toggleText = toggle.getElementsByTagName("span")[0];
+
+        toggle.onclick = (e) => {
+            console.log("toggle", locked);
+            if (locked) {
+                unlock();
+                toggle.dataset.replace = "Lock UI";
+                toggleText.innerHTML = "Unlocked";
+            } else {
+                lock();
+                toggle.dataset.replace = "Unlock UI";
+                toggleText.innerHTML = "Locked";
+            }
+        };
+    </script>
+    <script>
+        const source = new EventSource("http://localhost:8080/sse")
+        source.onmessage = (e) => {
+            console.log("message", e, JSON.parse(e.data));
+        };
     </script>
 </body>
 

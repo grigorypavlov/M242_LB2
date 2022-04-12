@@ -4,7 +4,7 @@
     --bg-color: #FAFAFA;
     --txt-color: #191919;
     --fg-color: #999;
-    --btn-color: #0B566B;
+    --btn-color: #54B3D6;
     --drop-shadow: black;
 }
 
@@ -13,7 +13,7 @@
         --bg-color: #222;
         --txt-color: #F9F9F9;
         --fg-color: #444;
-        --btn-color: #0B566B;
+        --btn-color: #54B3D6;
         --drop-shadow: white;
     }
 }
@@ -45,7 +45,6 @@ h1 {
 }
 
 .panel {
-    cursor: move;
     min-width: 250px;
     width: fit-content;
     height: fit-content;
@@ -64,6 +63,72 @@ button {
     border: none;
     padding: 10px;
     margin: 5px;
+}
+
+/* Fancy link animation */
+a {
+    overflow: hidden;
+    position: relative;
+    display: inline-block;
+}
+
+a::before,
+a::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    left: 0;
+}
+
+a::before {
+    background: #54B3D6;
+    height: 2px;
+    bottom: 0;
+    transform-origin: 100% 50%;
+    transform: scaleX(0);
+    transition: transform .3s cubic-bezier(0.76, 0, 0.24, 1);
+}
+
+a::after {
+    content: attr(data-replace);
+    height: 100%;
+    top: 0;
+    transform-origin: 100% 50%;
+    transform: translate3d(200%, 0, 0);
+    transition: .3s cubic-bezier(0.76, 0, 0, 0.24, 1);
+    color: #54B3D6;
+}
+
+a:hover::before {
+    transform-origin: 0% 50%;
+    transform: scaleX(1);
+}
+a:hover::after {
+    transform: translate3d(0, 0, 0);
+}
+
+a span {
+    display: inline-block;
+    transition: transform .3s cubic-bezier(0.76, 0, 0, 0.24, 1);
+}
+
+a:hover span {
+    transform: translate3d(-200%, 0, 0);
+}
+
+/* Button animation */
+.pulse:hover,
+.pulse:focus {
+    animation: pulse 1s;
+    box-shadow: 0 0 0 2em transparent;
+}
+
+.pulse:active {
+    opacity: 0.5;
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 var(--btn-color); }
 }
 
 .inside {

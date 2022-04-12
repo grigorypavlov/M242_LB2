@@ -1,3 +1,5 @@
+let allWindows;
+let locked = true;
 let offsetX, offsetY;
 let selectedWindow;
 
@@ -25,6 +27,8 @@ const windowToCursorPosition = (w) => {
 };
 
 const grabWindow = (e, w) => {
+    if (locked) return;
+
     // Prevent text selection.
     e.preventDefault();
 
@@ -49,6 +53,22 @@ const releaseWindow = (e) => {
     selectedWindow = null;
 };
 
+const lock = () => {
+    locked = true;
+
+    for (const w of allWindows) {
+        w.style.cursor = "auto";
+    }
+};
+
+const unlock = () => {
+    locked = false;
+
+    for (const w of allWindows) {
+        w.style.cursor = "move";
+    }
+};
+
 // Register event handlers.
 const registerWindows = (windows) => {
     for (const w of windows) {
@@ -60,4 +80,6 @@ const registerWindows = (windows) => {
     document.onmousemove = onWindowMoving;
 
     document.onmouseup = releaseWindow;
+
+    allWindows = windows;
 };
