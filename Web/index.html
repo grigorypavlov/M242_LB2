@@ -17,19 +17,19 @@
     <div class="panel-container">
         <div id="temp" class="panel">
             <h3>Temperature</h3>
-            <p class="txt-big">0.0&deg;C</p>
+            <p id="temperatureText" class="txt-big">0.0&deg;C</p>
         </div>
         <div id="humi" class="panel">
             <h3>Humidity</h3>
-            <p class="txt-big">0.0</p>
+            <p id="humidityText" class="txt-big">0.0</p>
         </div>
         <div id="tilt" class="panel">
             <h3>Tilt</h3>
-            <p class="txt-big">No Data</p>
+            <p id="tiltText" class="txt-big">No Data</p>
         </div>
         <div id="moti" class="panel">
             <h3>Motion</h3>
-            <p class="txt-big">not detected</p>
+            <p id="motionText" class="txt-big">not detected</p>
         </div>
         <div id="acti" class="panel">
             <h3>Actions</h3>
@@ -41,24 +41,24 @@
         <div id="debu" class="panel">
             <h3>Debug</h3>
             <div class="inside">
-                <pre>
-Debug log empty...
-</pre>
+                <pre id="dbgWindow"></pre>
             </div>
         </div>
         <div id="pres" class="panel">
             <h3>Pressure</h3>
-            <p class="txt-big">0.00</p>
+            <p id="pressureText" class="txt-big">0.00</p>
         </div>
         <div id="stat" class="panel">
             <h3>System Status</h3>
-            <p>Web Interface: Down</p>
-            <p>Backend API/Broker: Down</p>
-            <p>MCU: Down</p>
+            <p id="statusWeb">Web Interface: Down</p>
+            <p id="statusAPI">Backend API/Broker: Down</p>
+            <p id="statusMCU">MCU: Down</p>
         </div>
     </div>
 
+    <script src="panels.js"></script>
     <script>
+        // Initialize clock.
         const updateTime = () => {
             const c = new Date();
             const s = c.toLocaleTimeString('de-CH');
@@ -72,10 +72,8 @@ Debug log empty...
         setInterval(() => {
             document.getElementById("time").innerHTML = updateTime()
         }, 1000);
-    </script>
 
-    <script src="panels.js"></script>
-    <script>
+        // Initialize floating panels.
         const panels = document.getElementsByClassName("panel");
         registerWindows(panels);
 
@@ -94,12 +92,65 @@ Debug log empty...
                 toggleText.innerHTML = "Locked";
             }
         };
-    </script>
-    <script>
-        const source = new EventSource("http://localhost:8080/sse")
-        source.onmessage = (e) => {
-            console.log("message", e, JSON.parse(e.data));
+
+        const Displays = {
+            Temp: "Temp",
+            Humi: "Humi",
+            Tilt: "Tilt",
+            Moti: "Moti",
+            Pres: "Pres",
+            Syst: "Syst",
+            Debu: "Debu"
         };
+
+        const updateInterface = (data) => {
+            for (const d of data) {
+                switch (d.Type) {
+                    case Displays.Temp:
+                        const te = document.getElementById("temperatureText");
+                        te.innerHTML = d.Message + "&deg;C";
+                    break;
+                    case Displays.Humi:
+                        const hu = document.getElementById("humidityText");
+                        hu.innerHTML = d.Message;
+                    break;
+                    case Displays.Tilt:
+                        const ti = document.getElementById("tiltText");
+                        ti.innerHTML = d.Message;
+                    break;
+                    case Displays.Moti:
+                        const mo = document.getElementById("motionText");
+                        mo.innerHTML = d.Message;
+                    break;
+                    case Displays.Pres:
+                        const pr = document.getElementById("pressureText");
+                        pr.innerHTML = d.Message;
+                    break;
+                    case Displays.Syst:
+                        const sw = document.getElementById("statusWeb");
+                        const sa = document.getElementById("statusAPI");
+                        const sm = document.getElementById("statusMCU");
+
+                        sw.innerHTML = d.Message.Web;
+                        sa.innerHTML = d.Message.API;
+                        sm.innerHTML = d.Message.MCU;
+                    break;
+                    case Displays.Debu:
+                        const dw = document.getElementById("dbgWindow");
+                        dw.innerHTML += d.Message + "\n";
+                    break;
+                }
+            }
+        }
+
+        // Connect to SSE.
+        const source = new EventSource("http://localhost:8080/sse");
+        source.onmessage = (e) => {
+            console.log(e.data);
+            const data = JSON.parse(e.data);
+            updateInterface(data);
+        };
+
     </script>
 </body>
 
