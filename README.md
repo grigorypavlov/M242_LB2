@@ -1158,6 +1158,11 @@ so called "QoS" or Quality of Service parameter.
 
 Include the `MQTTClientMbedOs` library.
 
+```CPP
+#include <MQTTClientMbedOs.h>
+#include "MQTTNetwork.h"
+```
+
 Connect to the network.
 
 ```CPP
@@ -1166,18 +1171,22 @@ WiFiInterface* network = WiFiInterface::get_default_instance();
 nsapi_error_t ret = network->connect(MBED_CONF_APP_WIFI_SSID, MBED_CONF_APP_WIFI_PASSWORD, NSAPI_SECURITY_WPA_WPA2);
 ```
 
-Our MQTT client needs a TCP socket to communicate on.
+The MQTT client communicaties over a TCP connection.
 
 ```CPP
-TCPSocket* socket = new TCPSocket();
-nsapi_error_t open_result = socket->open(network);
+nsapi_error_t rc;
+
+MQTTNetwork mqttNetwork(network);
+MQTT::Client<MQTTNetwork, Countdown> client(mqttNetwork);
+if ((rc = mqttNetwork.connect(BROKER_HOST, BROKER_PORT)) != 0)
+{ // Error
+    printf("TCP Connection Returned: %d\n", rc);
+}
 ```
 
 Connect and authenticate to the broker.
 
 ```CPP
-nsapi_error_t rc;
-MQTTClient client(socket);
 MQTTPacket_connectData conn_data = MQTTPacket_connectData_initializer;
 conn_data.MQTTVersion = 3;
 conn_data.clientID.cstring = (char *) "IoTKitV3";
