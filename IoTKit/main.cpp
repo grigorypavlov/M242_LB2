@@ -161,7 +161,7 @@ int32_t main(void)
     std::sprintf(body, "Running");
     message.payload = (void*)body;
     message.payloadlen = strlen(body)+1;
-    rc = client.publish("state", message);
+    rc = client.publish("LB3/state", message);
 
     for (;;)
     {
@@ -197,27 +197,27 @@ int32_t main(void)
             std:sprintf(body, "{\"motion\":\"none\"}");
             message.payload = (void*)body;
             message.payloadlen = strlen(body)+1;
-            rc = client.publish("motion", message);
+            rc = client.publish("LB3/motion", message);
             
             std::sprintf(body, "%f", temperature);
             message.payload = (void*)body;
             message.payloadlen = strlen(body)+1;
-            rc = client.publish("temperature", message);
+            rc = client.publish("LB3/temperature", message);
 
             std::sprintf(body, "%f", humidity);
             message.payload = (void*)body;
             message.payloadlen = strlen(body)+1;
-            rc = client.publish("humidity", message);
+            rc = client.publish("LB3/humidity", message);
 
             std::sprintf(body, "{\"tilt\":[%d %d %d %d %d %d]}", xl, xh, yl, yh, zl, zh);
             message.payload = (void*)body;
             message.payloadlen = strlen(body)+1;
-            rc = client.publish("tilt", message);
+            rc = client.publish("LB3/tilt", message);
 
             std::sprintf(body, "%f", pressure);
             message.payload = (void*)body;
             message.payloadlen = strlen(body)+1;
-            rc = client.publish("pressure", message);
+            rc = client.publish("LB3/pressure", message);
 
             if (rc != 0)
             { // Error
@@ -234,7 +234,7 @@ int32_t main(void)
             std::sprintf(body, "{\"motion\":\"none\"}");
             message.payload = (void*)body;
             message.payloadlen = strlen(body)+1;
-            rc = client.publish("motion", message);
+            rc = client.publish("LB3/motion", message);
         }
 
         thread_sleep_for(10); // milliseconds
