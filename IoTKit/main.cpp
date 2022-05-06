@@ -1,5 +1,5 @@
 /**
- * Collects sensor information and sends it to a REST API.
+ * Collects sensor information and publishes it to a MQTT Broker.
  * Sensor overview: https://github.com/iotkitv3/i2c
  */
 #include <cstdio>
@@ -20,6 +20,7 @@
 #include <BMP180Wrapper.h>
 #include "glibr.h"
 #include <MQTTClientMbedOs.h>
+#include "MQTTNetwork.h"
 
 static DevI2C devI2c(MBED_CONF_IOTKIT_I2C_SDA, MBED_CONF_IOTKIT_I2C_SCL);
 #if MBED_CONF_IOTKIT_HTS221_SENSOR == true
@@ -34,29 +35,24 @@ static glibr gsensor(D14, D15);
 
 OLEDDisplay oled(MBED_CONF_IOTKIT_OLED_RST, MBED_CONF_IOTKIT_OLED_SDA, MBED_CONF_IOTKIT_OLED_SCL);
 
-#define API_BASE "http://192.168.65.55:8080/"
-#define API_URI "http://192.168.65.55:8080/api/v1/hello_world"
+#define BROKER_HOST "192.168.65.55"
+#define BROKER_PORT 1883
+#define TOPIC_ACTION "action"
+
 
 using std::printf;
+
+void messageArrived(MQTT::MessageData& md)
+{
+    MQTT::Message &message = md.message;
+    printf("Message arrived: qos %d, retained: %d, dup: %d, packetid: %d\n", message.qos, message.retained, message.dup, message.id);
+    printf("Message payload: %.*s\n", message.payloadlen, (char*)message.payload);
+}
 
 int32_t main(void)
 {
     oled.clear();
     oled.printf("Starting...\n");
-
-    /*// Read time from terminal.
-    struct tm t;
-    printf("Enter current date and time:\n");
-    printf("YYYY MM DD HH MM SS[Enter]\n");
-    std:scanf("%d %d %d %d %d %d", &t.tm_year, &t.tm_mon, &t.tm_mday,
-        &t.tm_hour, &t.tm_min, &t.tm_sec);
-
-    // Values need to be adjusted.
-    t.tm_year = t.tm_year - 1900;
-    t.tm_mon = t.tm_mon - 1;
-
-    // Set the time.
-    set_time(mktime(&t));*/
 
     // Initialize sensors.
     uint8_t id;
@@ -125,39 +121,47 @@ int32_t main(void)
     network->get_ip_address(&a);
     printf("IP: %s\n", a.get_ip_address());
 
-    // Allows us to re-use the same socket for each request (more resource friendly).
-    TCPSocket* socket = new TCPSocket();
+    nsapi_error_t rc;
 
-    nsapi_error_t open_result = socket->open(network);
-    if (open_result != 0)
+    MQTTNetwork mqttNetwork(network);
+    MQTT::Client<MQTTNetwork, Countdown> client(mqttNetwork);
+    if ((rc = mqttNetwork.connect(BROKER_HOST, BROKER_PORT)) != 0)
     { // Error
-        printf("Opening Socket Failed: %d\n", open_result);
-        return EXIT_FAILURE;
+        printf("TCP Connection Returned: %d\n", rc);
     }
 
-    nsapi_error_t connect_result = socket->connect(API_BASE);
-    if (connect_result != 0)
-    { // Error
-        printf("Connecting to API Failed: %d\n", connect_result);
-        return EXIT_FAILURE;
-    }
-
-    MQTTClient client(socket);
     MQTTPacket_connectData conn_data = MQTTPacket_connectData_initializer;
     conn_data.MQTTVersion = 3;
     conn_data.clientID.cstring = (char *) "IoTKitV3";
     conn_data.username.cstring = (char *) "above";
     conn_data.password.cstring = (char *) "andbeyond";
-    nsapi_error_t mqtt_connect_result = client.connect(conn_data);
-    if (mqtt_connect_result != 0)
+
+    if ((rc = client.connect(conn_data)) != 0)
     { // Error
-        printf("Connecting to Broker Failed: %d\n", mqtt_connect_result);
+        printf("Connecting to Broker Failed: %d\n", rc);
+        return EXIT_FAILURE;
+    }
+
+    if ((rc = client.subscribe(TOPIC_ACTION, MQTT::QOS2, messageArrived)) != 0)
+    { // Error
+        printf("Subscribing to Topic Failed: %d\n", rc);
     }
 
     float temperature, humidity;
     uint8_t xl, xh, yl, yh, zl, zh;
     xl = xh = yl = yh = zl = zh = 0;
     float pressure;
+
+    char body[80];
+    MQTT::Message message;
+    message.qos = MQTT::QOS0;
+    message.retained = false;
+    message.dup = false;
+
+    std::sprintf(body, "Running");
+    message.payload = (void*)body;
+    message.payloadlen = strlen(body)+1;
+    rc = client.publish("state", message);
 
     for (;;)
     {
@@ -190,37 +194,51 @@ int32_t main(void)
 
             printf("Air pressure [kPa] %.2f%%\r\n", pressure);
 
-            HttpRequest* post_req = new HttpRequest(socket, HTTP_POST, API_URI);
-            post_req->set_header("Content-Type", "application/json");
+            std:sprintf(body, "{\"motion\":\"none\"}");
+            message.payload = (void*)body;
+            message.payloadlen = strlen(body)+1;
+            rc = client.publish("motion", message);
+            
+            std::sprintf(body, "%f", temperature);
+            message.payload = (void*)body;
+            message.payloadlen = strlen(body)+1;
+            rc = client.publish("temperature", message);
 
-            // Build request body.
-            const char format[] = "[{\"sensor\":\"hum_temp\",\"data\":\"[%f, %f]\"},{\"sensor\":\"tilt\",\"data\":\"[%d, %d, %d, %d, %d, %d]\"},{\"sensor\":\"pressure\",\"data\":\"%f\"}]";
-            char body[80];
-            std::sprintf(body, format, humidity, temperature, xl, xh, yl, yh, zl, zh, pressure);
+            std::sprintf(body, "%f", humidity);
+            message.payload = (void*)body;
+            message.payloadlen = strlen(body)+1;
+            rc = client.publish("humidity", message);
 
-            HttpResponse* get_res = post_req->send(body, strlen(body));
+            std::sprintf(body, "{\"tilt\":[%d %d %d %d %d %d]}", xl, xh, yl, yh, zl, zh);
+            message.payload = (void*)body;
+            message.payloadlen = strlen(body)+1;
+            rc = client.publish("tilt", message);
 
-            if (get_res)
-            { // OK
-                printf("HttpRequest status code: %d\n", get_res->get_status_code());
+            std::sprintf(body, "%f", pressure);
+            message.payload = (void*)body;
+            message.payloadlen = strlen(body)+1;
+            rc = client.publish("pressure", message);
+
+            if (rc != 0)
+            { // Error
+                printf("Publish failed: %d\n", rc);
+                thread_sleep_for(15000); // milliseconds
             }
             else
-            { // Error
-                printf("HttpRequest failed (error code %d)\n", post_req->get_error());
-                delete post_req;
-                thread_sleep_for(15000); // milliseconds
-                continue;
+            { // OK
+                thread_sleep_for(5000); // milliseconds
             }
-
-            delete post_req;
-            thread_sleep_for(5000); // milliseconds
-            continue;
+        }
+        else
+        {
+            std::sprintf(body, "{\"motion\":\"none\"}");
+            message.payload = (void*)body;
+            message.payloadlen = strlen(body)+1;
+            rc = client.publish("motion", message);
         }
 
         thread_sleep_for(10); // milliseconds
     }
 
-    socket->close();
-    delete socket;
     return EXIT_SUCCESS;
 }
