@@ -23,9 +23,9 @@ SmartHome® Activity© Dashboard™
 10. [Sensors and Actuators](#sensors-1) [[FILE⧉]](single/05_SENSORS.md)
 11. [CORS](#cross-origin-resource-sharing) [[FILE⧉]](single/06_CORS.md)
 12. [Enabling HTTPS](#https) [[FILE⧉]](single/07_HTTPS.md)
-13. [Reflexion Colin van Loo](#colin-van-loo) [[FILE⧉]](single/12_Reflexion_Colin_van_Loo.md)
-14. [Reflexion Grigory Pavlov](#grigory-pavlov) [[FILE⧉]](single/13_Reflexion_Grigory_Pavlov.md)
-15. [Mosquitto Broker](#mosquitto-broker) [[FILE⧉]](single/14_Mosquitto_RPi_Setup.md)
+13. [Mosquitto Broker](#mosquitto-broker) [[FILE⧉]](single/14_Mosquitto_RPi_Setup.md)
+14. [Reflexion Colin van Loo](#colin-van-loo) [[FILE⧉]](single/12_Reflexion_Colin_van_Loo.md)
+15. [Reflexion Grigory Pavlov](#grigory-pavlov) [[FILE⧉]](single/13_Reflexion_Grigory_Pavlov.md)
 
 ## Project Description
 
@@ -998,9 +998,13 @@ log.Fatal(http.ListenAndServeTLS(":8080", "cert.pem", "key.pem", nil)
 	
 ## Mosquitto Broker
 
-Mosquitto on a Rasperry Pi 4
+The MQTT protocol works similar to the Observer (Publisher/Subscriber) pattern.
+A client can subscribe to a topic. When another client publishes data to that
+topic, all subscribed clients will be notified and sent the new data.
+The "broker" is the server inbetween. It's job is to receive published data and
+send it to all subscribers.
 
-### Get the Raspberry Pi Ready
+## Get the Raspberry Pi Ready
 
 First, download the Raspberry Pi Imager:
 
@@ -1052,7 +1056,7 @@ SSH into the RPi:
 ssh mos@192.168.1.137 # Replace IP with actual IP
 ```
 
-### Install Mosquitto Broker
+## Install Mosquitto Broker
 
 Ensure the RPi is up to date.
 
@@ -1095,7 +1099,7 @@ sudo systemctl enable mosquitto
 sudo systemctl start mosquitto
 ```
 
-### Connect to the Broker from Go
+## Connect to the Broker from Go
 
 We use the `paho.mqtt.golang` library.
 
@@ -1149,6 +1153,79 @@ so called "QoS" or Quality of Service parameter.
 - 0: Receive a message at most once
 - 1: Receive a message at least once
 - 2: Receive a message exactly once
+
+## Connect to Broker from IoTKit
+
+Include the `MQTTClientMbedOs` library.
+
+Connect to the network.
+
+```CPP
+// Error handling removed for clarity.
+WiFiInterface* network = WiFiInterface::get_default_instance();
+nsapi_error_t ret = network->connect(MBED_CONF_APP_WIFI_SSID, MBED_CONF_APP_WIFI_PASSWORD, NSAPI_SECURITY_WPA_WPA2);
+```
+
+Our MQTT client needs a TCP socket to communicate on.
+
+```CPP
+TCPSocket* socket = new TCPSocket();
+nsapi_error_t open_result = socket->open(network);
+```
+
+Connect and authenticate to the broker.
+
+```CPP
+nsapi_error_t rc;
+MQTTClient client(socket);
+MQTTPacket_connectData conn_data = MQTTPacket_connectData_initializer;
+conn_data.MQTTVersion = 3;
+conn_data.clientID.cstring = (char *) "IoTKitV3";
+conn_data.username.cstring = (char *) "above";
+conn_data.password.cstring = (char *) "andbeyond";
+
+if ((rc = client.connect(conn_data)) != 0)
+{ // Error
+    printf("Connecting to Broker Failed: %d\n", rc);
+}
+```
+
+Subscribe to a topic.
+
+```CPP
+if ((rc = client.subscribe("action", MQTT::QOS2, messageArrived)) != 0)
+{ // Error
+    printf("Subscribing to Topic Failed: %d\n", rc);
+}
+```
+
+`messageArrived` is our function to receive and handle messages from the
+broker.
+
+```CPP
+void messageArrived(MQTT::MessageData& md)
+{
+    MQTT::Message &message = md.message;
+    printf("Message arrived: qos %d, retained: %d, dup: %d, packetid: %d\n", message.qos, message.retained, message.dup, message.id);
+    printf("Message payload: %.*s\n", message.payloadlen, (char*)message.payload);
+}
+```
+
+Publish to a topic.
+
+```CPP
+const char format[] = "%f";
+char body[10];
+std::sprintf(body, format, temperature);
+
+MQTT::Message message;
+message.qos = MQTT::QOS0;
+message.retained = false;
+message.dup = false;
+message.payload = (void*)body;
+message.payloadlen = strlen(body)+1;
+nsapi_error_t rc = client.publish("temperature", message);
+```
 
 ## Reflexionen
 
