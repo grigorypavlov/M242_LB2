@@ -34,28 +34,15 @@ func main() {
 		panic(token.Error())
 	}
 
-	if token := client.Subscribe("LB3/Temperature", 1, handleMessage); token.Wait() && token.Error() != nil {
+	if token := client.Subscribe("LB3/*", 1, handleMessage); token.Wait() && token.Error() != nil {
 		log.Fatalf("Failed Subscribing to Topic: %v", token.Error())
 		panic(token.Error())
 	}
 
-	if token := client.Publish("LB3/Temperature", 1, true, `{"temp": 28.5, "hum": 30.8}`); token.Wait() && token.Error() != nil {
-		log.Fatalln("Failed to Publish to Topic")
-	}
+	sseServ := sse.NewServer()
+	Notifier = sseServ.Notifier
 
-	broker := sse.NewServer()
-	Notifier = broker.Notifier
-
-	/*go func() {
-		var input string
-		for {
-			fmt.Scanf("%s", &input)
-
-			broker.Notifier <- []byte(input)
-		}
-	}()*/
-
-	log.Fatal("HTTP server error: ", http.ListenAndServe(":8080", loggingMiddleware(broker)))
+	log.Fatal("HTTP server error: ", http.ListenAndServe(":8080", loggingMiddleware(sseServ)))
 }
 
 func loggingMiddleware(next http.Handler) http.Handler {
@@ -67,5 +54,6 @@ func loggingMiddleware(next http.Handler) http.Handler {
 
 func handleMessage(client mqtt.Client, msg mqtt.Message) {
 	fmt.Printf("Client: %v Received Message: %v\n", client, msg)
-	Notifier <- msg.Payload()
+	data := fmt.Sprintf(`{"Type":%s,"Message":%s}`, msg.Topic(), msg.Payload())
+	Notifier <- []byte(data)
 }
