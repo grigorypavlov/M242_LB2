@@ -103,43 +103,41 @@
             Debu: "Debu"
         };
 
-        const updateInterface = (data) => {
-            for (const d of data) {
-                switch (d.Type) {
-                    case Displays.Temp:
-                        const te = document.getElementById("temperatureText");
-                        te.innerHTML = d.Message + "&deg;C";
+        const updateInterface = (d) => {
+            switch (d.Type) {
+                case Displays.Temp:
+                    const te = document.getElementById("temperatureText");
+                    te.innerHTML = d.Message + "&deg;C";
                     break;
-                    case Displays.Humi:
-                        const hu = document.getElementById("humidityText");
-                        hu.innerHTML = d.Message;
+                case Displays.Humi:
+                    const hu = document.getElementById("humidityText");
+                    hu.innerHTML = d.Message;
                     break;
-                    case Displays.Tilt:
-                        const ti = document.getElementById("tiltText");
-                        ti.innerHTML = d.Message;
+                case Displays.Tilt:
+                    const ti = document.getElementById("tiltText");
+                    ti.innerHTML = d.Message;
                     break;
-                    case Displays.Moti:
-                        const mo = document.getElementById("motionText");
-                        mo.innerHTML = d.Message;
+                case Displays.Moti:
+                    const mo = document.getElementById("motionText");
+                    mo.innerHTML = d.Message;
                     break;
-                    case Displays.Pres:
-                        const pr = document.getElementById("pressureText");
-                        pr.innerHTML = d.Message;
+                case Displays.Pres:
+                    const pr = document.getElementById("pressureText");
+                    pr.innerHTML = d.Message;
                     break;
-                    case Displays.Syst:
-                        const sw = document.getElementById("statusWeb");
-                        const sa = document.getElementById("statusAPI");
-                        const sm = document.getElementById("statusMCU");
+                case Displays.Syst:
+                    const sw = document.getElementById("statusWeb");
+                    const sa = document.getElementById("statusAPI");
+                    const sm = document.getElementById("statusMCU");
 
-                        sw.innerHTML = d.Message.Web;
-                        sa.innerHTML = d.Message.API;
-                        sm.innerHTML = d.Message.MCU;
+                    sw.innerHTML = d.Message.Web;
+                    sa.innerHTML = d.Message.API;
+                    sm.innerHTML = d.Message.MCU;
                     break;
-                    case Displays.Debu:
-                        const dw = document.getElementById("dbgWindow");
-                        dw.innerHTML += d.Message + "\n";
+                case Displays.Debu:
+                    const dw = document.getElementById("dbgWindow");
+                    dw.innerHTML += d.Message + "\n";
                     break;
-                }
             }
         }
 
@@ -150,7 +148,6 @@
             const data = JSON.parse(e.data);
             updateInterface(data);
         };
-
     </script>
 </body>
 

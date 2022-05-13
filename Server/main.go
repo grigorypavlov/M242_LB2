@@ -42,6 +42,18 @@ func main() {
 	sseServ := sse.NewServer()
 	Notifier = sseServ.Notifier
 
+	go func() {
+		var topic, message string
+		for {
+			fmt.Print("Topic: ")
+			fmt.Scanf("%s", &topic)
+			fmt.Print("Message: ")
+			fmt.Scanf("%s", &message)
+			data := fmt.Sprintf(`{"Type":"%s","Message":"%s"}`, topic, message)
+			Notifier <- []byte(data)
+		}
+	}()
+
 	log.Fatal("HTTP server error: ", http.ListenAndServe(":8080", loggingMiddleware(sseServ)))
 }
 
