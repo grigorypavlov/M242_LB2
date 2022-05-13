@@ -94,13 +94,13 @@
         };
 
         const Displays = {
-            Temp: "Temp",
-            Humi: "Humi",
-            Tilt: "Tilt",
-            Moti: "Moti",
-            Pres: "Pres",
-            Syst: "Syst",
-            Debu: "Debu"
+            Temp: "LB3/Temp",
+            Humi: "LB3/Humi",
+            Tilt: "LB3/Tilt",
+            Moti: "LB3/Moti",
+            Pres: "LB3/Pres",
+            Syst: "LB3/Syst",
+            Debu: "LB3/Debu"
         };
 
         const updateInterface = (d) => {
@@ -115,11 +115,11 @@
                     break;
                 case Displays.Tilt:
                     const ti = document.getElementById("tiltText");
-                    ti.innerHTML = d.Message;
+                    ti.innerHTML = d.Message.tilt;
                     break;
                 case Displays.Moti:
                     const mo = document.getElementById("motionText");
-                    mo.innerHTML = d.Message;
+                    mo.innerHTML = d.Message.motion;
                     break;
                 case Displays.Pres:
                     const pr = document.getElementById("pressureText");

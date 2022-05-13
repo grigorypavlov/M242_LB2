@@ -30,12 +30,13 @@ static HTS221Sensor hum_temp(&devI2c);
 static BMP180Wrapper hum_temp(&devI2c);
 #endif
 static LSM6DSLSensor tilt(&devI2c, LSM6DSL_ACC_GYRO_I2C_ADDRESS_LOW);
-static BMP180Wrapper air_pressure(&devI2c);
+//static BMP180Wrapper air_pressure(&devI2c);
 static glibr gsensor(D14, D15);
 
 OLEDDisplay oled(MBED_CONF_IOTKIT_OLED_RST, MBED_CONF_IOTKIT_OLED_SDA, MBED_CONF_IOTKIT_OLED_SCL);
 
-#define BROKER_HOST "192.168.65.55"
+//#define BROKER_HOST "192.168.65.55"
+#define BROKER_HOST "cloud.tbz.ch"
 #define BROKER_PORT 1883
 #define TOPIC_ACTION "action"
 
@@ -94,11 +95,11 @@ int32_t main(void)
     tilt.read_id(&id);
     printf("LSM6DSL accelerometer & gyroscope = 0x%X\r\n", id);
 
-    air_pressure.init(NULL);
-    air_pressure.enable();
+    //air_pressure.init(NULL);
+    //air_pressure.enable();
 
-    air_pressure.read_id(&id);
-    printf("BMP180 air pressure = 0x%X\r\n", id);
+    //air_pressure.read_id(&id);
+    //printf("BMP180 air pressure = 0x%X\r\n", id);
 
     // Connect to WiFi network over the default networking interface.
     // See `mbed_app.json` for the WiFi credentials.
@@ -136,8 +137,8 @@ int32_t main(void)
     MQTTPacket_connectData conn_data = MQTTPacket_connectData_initializer;
     conn_data.MQTTVersion = 3;
     conn_data.clientID.cstring = (char *) "IoTKitV3";
-    conn_data.username.cstring = (char *) "above";
-    conn_data.password.cstring = (char *) "andbeyond";
+    conn_data.username.cstring = (char *) "GitSaveUser";
+    conn_data.password.cstring = (char *) "GitSavePassword";
 
     if ((rc = client.connect(conn_data)) != 0)
     { // Error
@@ -169,8 +170,8 @@ int32_t main(void)
     for (;;)
     {
         oled.clear();
-        if (gsensor.isGestureAvailable() && gsensor.readGesture() != DIR_NONE)
-        {
+        /*if (gsensor.isGestureAvailable() && gsensor.readGesture() != DIR_NONE)
+        {*/
             time_t unix_seconds = time(NULL);
             char time_buffer[32];
             strftime(time_buffer, 32, "%H:%M\n", localtime(&unix_seconds));
@@ -193,34 +194,34 @@ int32_t main(void)
 
             printf("\nxl %d, xh %d, yl %d, yh %d, zl %d, zh %d\n", xl, xh, yl, yh, zl, zh);
 
-            air_pressure.get_humidity(&pressure);
+            //air_pressure.get_humidity(&pressure);
 
             printf("Air pressure [kPa] %.2f%%\r\n", pressure);
 
             std:sprintf(body, "{\"motion\":\"none\"}");
             message.payload = (void*)body;
             message.payloadlen = strlen(body)+1;
-            rc = client.publish("LB3/motion", message);
+            rc = client.publish("LB3/Moti", message);
             
             std::sprintf(body, "%f", temperature);
             message.payload = (void*)body;
             message.payloadlen = strlen(body)+1;
-            rc = client.publish("LB3/temperature", message);
+            rc = client.publish("LB3/Temp", message);
 
             std::sprintf(body, "%f", humidity);
             message.payload = (void*)body;
             message.payloadlen = strlen(body)+1;
-            rc = client.publish("LB3/humidity", message);
+            rc = client.publish("LB3/Humi", message);
 
-            std::sprintf(body, "{\"tilt\":[%d %d %d %d %d %d]}", xl, xh, yl, yh, zl, zh);
+            std::sprintf(body, "{\"tilt\":[%d, %d, %d, %d, %d, %d]}", xl, xh, yl, yh, zl, zh);
             message.payload = (void*)body;
             message.payloadlen = strlen(body)+1;
-            rc = client.publish("LB3/tilt", message);
+            rc = client.publish("LB3/Tilt", message);
 
             std::sprintf(body, "%f", pressure);
             message.payload = (void*)body;
             message.payloadlen = strlen(body)+1;
-            rc = client.publish("LB3/pressure", message);
+            rc = client.publish("LB3/Pres", message);
 
             if (rc != 0)
             { // Error
@@ -231,14 +232,14 @@ int32_t main(void)
             { // OK
                 thread_sleep_for(5000); // milliseconds
             }
-        }
+        /*}
         else
         {
             std::sprintf(body, "{\"motion\":\"none\"}");
             message.payload = (void*)body;
             message.payloadlen = strlen(body)+1;
             rc = client.publish("LB3/motion", message);
-        }
+        }*/
 
         thread_sleep_for(10); // milliseconds
     }

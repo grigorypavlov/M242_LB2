@@ -2,11 +2,11 @@
     "config": {
         "wifi-ssid": {
             "help": "WiFi SSID",
-            "value": "\"Pixel 5 CalyxOS\""
+            "value": "\"LERNKUBE\""
         },
         "wifi-password": {
             "help": "WiFi Password",
-            "value": "\"notNice!3\""
+            "value": "\"l3rnk4b3\""
         }
     },    
     "target_overrides": {

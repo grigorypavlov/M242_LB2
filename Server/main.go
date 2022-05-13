@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/grigorypavlov/M242_LB2/Server/sse"
@@ -13,13 +14,14 @@ import (
 var Notifier chan []byte
 
 func main() {
-	broker := "192.168.1.137"
+	//broker := "192.168.1.137"
+	broker := "cloud.tbz.ch"
 	port := 1883
 	opts := mqtt.NewClientOptions()
 	opts.AddBroker(fmt.Sprintf("tcp://%s:%d", broker, port))
 	opts.SetClientID("GoServer")
-	opts.SetUsername("mostest")
-	opts.SetPassword("supersecretpassword")
+	opts.SetUsername(os.Getenv("BROKER_USER"))
+	opts.SetPassword(os.Getenv("BROKER_PASSWD"))
 
 	opts.OnConnect = func(c mqtt.Client) {
 		fmt.Println("Broker Connected")
@@ -34,7 +36,7 @@ func main() {
 		panic(token.Error())
 	}
 
-	if token := client.Subscribe("LB3/*", 1, handleMessage); token.Wait() && token.Error() != nil {
+	if token := client.Subscribe("LB3/#", 1, handleMessage); token.Wait() && token.Error() != nil {
 		log.Fatalf("Failed Subscribing to Topic: %v", token.Error())
 		panic(token.Error())
 	}
@@ -66,6 +68,6 @@ func loggingMiddleware(next http.Handler) http.Handler {
 
 func handleMessage(client mqtt.Client, msg mqtt.Message) {
 	fmt.Printf("Client: %v Received Message: %v\n", client, msg)
-	data := fmt.Sprintf(`{"Type":%s,"Message":%s}`, msg.Topic(), msg.Payload())
+	data := fmt.Sprintf(`{"Type":"%s","Message":%s}`, msg.Topic(), msg.Payload())
 	Notifier <- []byte(data)
 }
