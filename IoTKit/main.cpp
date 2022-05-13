@@ -47,6 +47,9 @@ void messageArrived(MQTT::MessageData& md)
     MQTT::Message &message = md.message;
     printf("Message arrived: qos %d, retained: %d, dup: %d, packetid: %d\n", message.qos, message.retained, message.dup, message.id);
     printf("Message payload: %.*s\n", message.payloadlen, (char*)message.payload);
+    
+    char * content = (char*) message.payload;
+    oled.printf(content);
 }
 
 int32_t main(void)
